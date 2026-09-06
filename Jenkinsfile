@@ -62,33 +62,30 @@ pipeline {
                 sshagent(credentials: ['ec2-ssh']) {
 
                     sh '''
-                        ssh -o StrictHostKeyChecking=no \
-                            ubuntu@13.201.137.160 <<'EOF'
-
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.201.137.160 "
                             set -e
 
-                            echo "Pulling latest Docker image..."
+                            echo 'Pulling latest Docker image...'
                             docker pull vadapaav45/pokemon-universe:latest
 
-                            echo "Stopping old container..."
+                            echo 'Stopping old container...'
                             docker stop pokemon-universe || true
 
-                            echo "Removing old container..."
+                            echo 'Removing old container...'
                             docker rm pokemon-universe || true
 
-                            echo "Starting new container..."
+                            echo 'Starting new container...'
                             docker run -d \
                                 --name pokemon-universe \
                                 -p 80:80 \
                                 --restart unless-stopped \
                                 vadapaav45/pokemon-universe:latest
 
-                            echo "Deployment completed successfully!"
+                            echo 'Deployment completed successfully!'
 
-                            echo "Running containers:"
+                            echo 'Running containers:'
                             docker ps
-
-                        EOF
+                        "
                     '''
                 }
             }
