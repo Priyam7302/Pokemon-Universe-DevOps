@@ -18,6 +18,7 @@ pipeline {
                     test -f index.css
                     test -f index.js
                     test -f Dockerfile
+
                     echo "All required files are present"
                 '''
             }
@@ -25,7 +26,9 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t pokemon-universe:jenkins .'
+                sh '''
+                    docker build -t pokemon-universe:jenkins .
+                '''
             }
         }
 
@@ -38,21 +41,54 @@ pipeline {
                 )]) {
 
                     sh '''
-                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                        docker tag pokemon-universe:jenkins $DOCKER_USERNAME/pokemon-universe:latest
-                        docker push $DOCKER_USERNAME/pokemon-universe:latest
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        docker tag pokemon-universe:jenkins \
+                            $DOCKER_USERNAME/pokemon-universe:latest
+
+                        docker push \
+                            $DOCKER_USERNAME/pokemon-universe:latest
+
                         docker logout
                     '''
                 }
             }
         }
 
-        stage('Test EC2 SSH') {
+        stage('Deploy to EC2') {
             steps {
                 sshagent(credentials: ['ec2-ssh']) {
+
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@13.201.137.160 \
-                        "echo 'Jenkins successfully connected to EC2'"
+                        ssh -o StrictHostKeyChecking=no \
+                            ubuntu@13.201.137.160 <<'EOF'
+
+                            set -e
+
+                            echo "Pulling latest Docker image..."
+                            docker pull vadapaav45/pokemon-universe:latest
+
+                            echo "Stopping old container..."
+                            docker stop pokemon-universe || true
+
+                            echo "Removing old container..."
+                            docker rm pokemon-universe || true
+
+                            echo "Starting new container..."
+                            docker run -d \
+                                --name pokemon-universe \
+                                -p 80:80 \
+                                --restart unless-stopped \
+                                vadapaav45/pokemon-universe:latest
+
+                            echo "Deployment completed successfully!"
+
+                            echo "Running containers:"
+                            docker ps
+
+                        EOF
                     '''
                 }
             }
