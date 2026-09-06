@@ -46,5 +46,16 @@ pipeline {
                 }
             }
         }
+
+        stage('Test EC2 SSH') {
+            steps {
+                sshagent(credentials: ['ec2-ssh']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.201.137.160 \
+                        "echo 'Jenkins successfully connected to EC2'"
+                    '''
+                }
+            }
+        }
     }
 }
